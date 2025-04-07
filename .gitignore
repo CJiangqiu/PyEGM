@@ -1,0 +1,7 @@
+build
+.venv
+dist
+pyegm.egg-info
+.idea
+.pypirc
+*.env
