@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyegm"
-version = "0.2.0"
+version = "0.2.1"
 authors = [{name = "CJiangqiu", email = "17787153839@qq.com"}]
 description = "Explosion Generation Model (EGM) classifier"
 readme = "README.md"

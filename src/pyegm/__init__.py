@@ -4,7 +4,7 @@ PyEGM - Explosion Generation Model
 A scikit-learn compatible implementation of the EGM algorithm for classification tasks.
 Core features include hypersphere/gaussian point generation and adaptive radius adjustment.
 """
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "CJiangqiu"
 __author_email__ = "17787153839@qq.com"
 __license__ = "MIT"
