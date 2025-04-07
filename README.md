@@ -1,7 +1,6 @@
 # PyEGM: Explosive Generative Model for Classification
 
-PyEGM is an explosive generative model (EGM) classifier designed for incremental learning. It generates new training points during each iteration and adapts its geometry based on the input data. This allows it to improve over time and make accurate predictions even as the data evolves.
-
+PyEGM is an explosive generative model (EGM) classifier designed for incremental learning. It generates new training points during each iteration and dynamically adjusts its generation strategy based on the input data distribution. This allows it to improve over time and make accurate predictions even as the data evolves.
 ## 🌟 Key Features
 
 - **Dual Generation Modes**
