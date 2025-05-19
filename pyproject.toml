@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyegm"
-version = "0.2.2"
+version = "0.2.4"
 authors = [{name = "CJiangqiu", email = "17787153839@qq.com"}]
 description = "Explosive Generative Model (EGM) classifier"
 readme = "README.md"
@@ -27,6 +27,8 @@ dependencies = [
     "scikit-learn>=1.0.0",
     "typing-extensions>=4.0.0; python_version < '3.8'",
     "scipy>=1.5.0",
+    "hnswlib>=0.5.2",
+
 ]
 
 [project.urls]
