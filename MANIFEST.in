@@ -1,0 +1,2 @@
+include README.md LICENSE
+recursive-include src/pyegm/data *.yaml *.yml *.json

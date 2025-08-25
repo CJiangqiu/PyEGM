@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyegm"
-version = "0.2.4"
+version = "0.2.5"
 authors = [{name = "CJiangqiu", email = "17787153839@qq.com"}]
 description = "Explosive Generative Model (EGM) classifier"
 readme = "README.md"
@@ -28,9 +28,18 @@ dependencies = [
     "typing-extensions>=4.0.0; python_version < '3.8'",
     "scipy>=1.5.0",
     "hnswlib>=0.5.2",
-
+    "PyYAML>=6.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/CJiangqiu/PyEGM"
 Documentation = "https://github.com/CJiangqiu/PyEGM#readme"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pyegm = ["data/*.yaml", "data/*.yml", "data/*.json"]
