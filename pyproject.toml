@@ -4,42 +4,60 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyegm"
-version = "0.2.5"
-authors = [{name = "CJiangqiu", email = "17787153839@qq.com"}]
-description = "Explosive Generative Model (EGM) classifier"
+version = "0.3.3"
+description = "PyEGM (Physics-Inspired Exemplar Growth Model): a sample-growth classifier inspired by explosion dynamics; CPU (HNSW) by default with optional GPU (PyTorch CUDA), visualization as an optional extra."
 readme = "README.md"
-requires-python = ">=3.7"
-license = "MIT"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "CJiangqiu", email = "17787153839@qq.com"}]
 classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Science/Research",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Operating System :: OS Independent",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Operating System :: OS Independent",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Information Analysis"
 ]
+
+# Core deps (CPU-first; no FAISS). GPU is optional via PyTorch.
 dependencies = [
-    "numpy>=1.21.0",
-    "scikit-learn>=1.0.0",
-    "typing-extensions>=4.0.0; python_version < '3.8'",
-    "scipy>=1.5.0",
-    "hnswlib>=0.5.2",
-    "PyYAML>=6.0",
+  "numpy>=1.21.0",
+  "scikit-learn>=1.0.0",
+  "scipy>=1.5.0",
+  "hnswlib>=0.5.2",
+  "PyYAML>=6.0",
+  "typing-extensions>=4.0.0; python_version < '3.8'"
+]
+
+[project.optional-dependencies]
+# Visualization extras (do not affect core install)
+viz = [
+  "matplotlib>=3.5",
+  "pillow>=9.0"
+]
+# GPU extra: prefer installing PyTorch from the official instructions for your CUDA/MPS setup.
+# This extra pulls the default PyPI wheel (often CPU by default).
+gpu = [
+  "torch>=2.1"
 ]
 
 [project.urls]
 Homepage = "https://github.com/CJiangqiu/PyEGM"
 Documentation = "https://github.com/CJiangqiu/PyEGM#readme"
+Issues = "https://github.com/CJiangqiu/PyEGM/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["tests*", "examples*", "notebooks*", "scripts*"]
 
 [tool.setuptools.package-data]
 pyegm = ["data/*.yaml", "data/*.yml", "data/*.json"]

@@ -1,0 +1,15 @@
+anisotropy: 0.33203560409309835
+deflect_strength: 0.05522943273239886
+energy_decay: 0.5552574240689905
+noise_scale: 0.046309067961982864
+num_iters: 2
+num_points: 180
+path_gamma: 0.6085083666165317
+path_k: 31
+path_step_size: 0.5580751710596659
+path_steps: 4
+radius_growth: 1.146457767022028
+seed_mode: centroid
+step_gamma: 0.6510470801796958
+step_weight_mode: none
+total_energy: 1.595867900682566
