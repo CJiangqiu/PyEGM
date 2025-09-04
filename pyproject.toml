@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pyegm"
-version = "0.3.3"
-description = "PyEGM (Physics-Inspired Exemplar Growth Model): a sample-growth classifier inspired by explosion dynamics; CPU (HNSW) by default with optional GPU (PyTorch CUDA), visualization as an optional extra."
+version = "0.3.0"
+description = "PyEGM (Physics-Inspired Exemplar Growth Model): a sample-growth classifier inspired by physical explosion phenomena; CPU (HNSW) by default with optional GPU (PyTorch CUDA), visualization as an optional extra."
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
@@ -30,8 +30,7 @@ dependencies = [
   "scikit-learn>=1.0.0",
   "scipy>=1.5.0",
   "hnswlib>=0.5.2",
-  "PyYAML>=6.0",
-  "typing-extensions>=4.0.0; python_version < '3.8'"
+  "PyYAML>=6.0"
 ]
 
 [project.optional-dependencies]
