@@ -1,204 +1,221 @@
-# PyEGM
-
-**A Sample Growth Model Inspired by Physical Explosion Phenomena**  
-**以物理爆炸现象为灵感的样本生长模型**
-
-Language: [English](#english) | [中文](#中文)
-
----
+[English](#english) | [中文说明](#chinese)
 
 <a id="english"></a>
-<details open>
-<summary><strong>English</strong></summary>
 
-# PyEGM: A Sample Growth Model Inspired by Physical Explosion Phenomena
+# PyEGM — Physics-Inspired Exemplar Growth Model (GPU-Optional)
 
-> Grow class-wise samples via an energy–direction analogy and decide with trend-path voting. Designed for few-shot class-incremental and long-tailed regimes.  
-> ⚙️ Backend switchable: `platform="auto"|"cpu"|"cuda"` (uses CUDA when available, otherwise falls back to CPU).
+PyEGM is a lightweight classifier for **fixed-feature** protocols. Each class is represented by a **prototype** (class mean) and a small set of **arrival centers** placed on concentric shells along deterministic rays. Prediction blends a prototype kernel and an arrival-center kernel with a single mixing weight.
 
-## 🧠 Model Inspiration
+- **Core**: NumPy + scikit-learn  
+- **Optional (acceleration)**: **User-installed** PyTorch + CUDA for GPU scoring (falls back to CPU)
 
-### Why “physical explosion phenomena”?
-In few-shot and long-tailed settings, training data rarely covers the critical regions near decision boundaries. Pure interpolation or random augmentations often extrapolate poorly. We need a *direction-aware, magnitude-controlled, stage-wise* mechanism for **within-class growth**: push limited samples toward plausible boundaries while avoiding intrusions into rival classes. Explosion phenomena exhibit **instantaneous energy release → outward expansion along directions → anisotropy and shell-like structures under constraints → front propagation in stages**. These traits align with our methodological goals, so we use them as a model inspiration rather than solving real dynamics equations.
-
-### Our approach
-- **Growth-style generation**: Allocate an “energy budget” per class and expand samples along local principal directions. Parameters such as `total_energy`, `mass`, `explosion_time`, and `noise_*` control intensity and pacing.
-- **Anisotropy and rival suppression**: Shape with local covariance (`anisotropy`) and deflect components toward rival class centers (`deflect_rival`, `deflect_strength`), echoing directional preference and shielding effects.
-- **Shells and radius control**: Limit extrapolation using `shell_ratio`, `shell_jitter`, and `adaptive_radius_mode`, keeping synthetic “shells” close to plausible decision fronts.
-- **Trend-path voting**: At inference, move step-by-step along each candidate class direction (`path_steps`, `path_step_size`), aggregate neighbors with weights (`path_k`, `path_gamma`, `step_weight_mode`), and fall back to majority neighbors when a path is unreliable.
-
-## ⚙️ API Reference
-
-### Constructor — key arguments
-- **Presets & config**: `preset` (`auto|fscil|balanced_kshot|imbalanced_kshot|extreme_lowshot` or a `*.yaml` path)  
-- **Generation (analogy)**: `num_points`, `total_energy`, `mass`, `explosion_time`, `noise_scale`, `noise_decay`, `dirichlet_alpha`, `dynamic_energy`  
-- **Radius / shells**: `adaptive_radius_mode`, `fixed_radius`, `use_radius_clip`, `shell_ratio`, `shell_jitter`  
-- **Geometry / rivalry**: `local_k`, `anisotropy`, `deflect_rival`, `deflect_strength`, `momentum_conserve`  
-- **Trend-path**: `path_steps`, `path_step_size`, `path_k`, `path_gamma`, `step_weight_mode`, `step_gamma`  
-- **Scheduling / stability**: `points_schedule`, `energy_schedule`, `num_iters`, `energy_decay`, `radius_growth`, `governor`  
-- **Backend & env**: `platform` (`auto/cpu/cuda`), `torch_q_block`, `torch_db_block`, `random_state`
-
-### Methods — quick list
-- `fit(X, y)`: Train the base session, parse preset/config, synthesize growth samples, and build the retrieval backend.  
-- `partial_fit(X, y, classes=None)`: Incremental update for few-shot or newly introduced classes.  
-- `continue_fit(extra_iters=..., reseed=None)`: Add a small number of extra iterations on the current state (short resuming).  
-- `predict(X)`: Trend-path-based prediction.  
-- `score(X, y)`: Convenience evaluation.  
-- `export_fixed_yaml(path, include_meta=True)`: Export the final effective hyperparameter snapshot.  
-- `get_fitted_params()`: Return the final effective hyperparameter dictionary.  
-- `save(dir_path)` / `load(dir_path)`: Checkpoint and restore the model (config, tensors/arrays, and backend index).  
-- `visualize_explosion(...)`: 2-D projection visualization of growth and paths; supports static images and animations.
-
-## 🧩 Features
-
-### 🎬 Visualization
-- **What it shows**: real samples, synthetic growth samples, energy vectors, and trend paths; supports PCA / t-SNE / UMAP projections.  
-- **Common arguments**: `projection`, `n_samples`, `path_steps`, `show_synthetic`, `show_energy_vectors`, `save_path` (file suffix decides `png/gif/mp4`).  
-- **Dependencies**: `matplotlib`; for animations use `imageio`/`imageio-ffmpeg` or `moviepy`; UMAP requires `umap-learn`.  
-- **Example**:
-  ```python
-  clf.visualize_explosion(
-      projection="pca", n_samples=800, path_steps=6,
-      show_synthetic=True, show_energy_vectors=True,
-      save_path="explosion.png", show=False
-  )
-  ```
-
-### 💾 Checkpointing & 🔁 Resuming
-- **Save & restore**: `save(dir)` writes config and internal arrays, plus the needed index/cache; `PyEGM.load(dir)` restores a usable model for inference or further training.  
-- **Short resuming**: `continue_fit(extra_iters=..., reseed=...)` adds a small number of iterations on the existing configuration and data to reduce retraining overhead.  
-- **Incremental sessions**: `partial_fit(X, y, classes=None)` merges new samples and updates indexing; combine with save/load for staged training and evaluation.  
-- **Backend choice**: `platform="auto"` uses GPU when CUDA is available, otherwise CPU. When restoring across environments, the backend is chosen by availability.
-
-## 🚀 Minimal Example
-```python
-import numpy as np
-from pyegm import PyEGM
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
-
-# Data
-X, y = make_classification(n_samples=2000, n_features=64, n_classes=5, random_state=0)
-Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.3, random_state=0)
-
-# Initialize & train
-clf = PyEGM(preset="auto", platform="auto", random_state=42)
-clf.fit(Xtr.astype(np.float32), ytr)
-print("Accuracy:", clf.score(Xte.astype(np.float32), yte))
-
-# Save & resume
-clf.export_fixed_yaml("pyegm_fixed.yaml")
-clf.save("checkpoints/egm_run")
-
-clf2 = PyEGM.load("checkpoints/egm_run")
-clf2.continue_fit(extra_iters=3, reseed=123)
-clf2.partial_fit(Xtr[:40].astype(np.float32), ytr[:40])
-clf2.save("checkpoints/egm_run_after")
-
-# Visualization (export a static image)
-clf2.visualize_explosion(
-    projection="pca", n_samples=800, path_steps=6,
-    show_synthetic=True, show_energy_vectors=True,
-    save_path="explosion.png", show=False
-)
-```
-</details>
+**API**: `fit`, `partial_fit`, `predict`, `score`, `save`, `load`, 
 
 ---
 
-<a id="中文"></a>
-<details>
-<summary><strong>中文</strong></summary>
+## Installation
 
-# PyEGM：以物理爆炸现象为灵感的样本生长模型
+```bash
+pip install pyegm
+```
+Core requirements: `numpy>=1.21`, `scikit-learn>=1.0`  
 
-> 通过“能量—方向”的类比在类内进行生长式生成，并以趋势路径投票完成判别；适用于小样本增量与不平衡场景。  
-> ⚙️ 后端可切换：`platform="auto"|"cpu"|"cuda"`（检测到 CUDA 时启用 GPU，否则回退 CPU）。
+### Enabling GPU Acceleration (Optional)
+PyEGM does **not** depend on PyTorch by default. If you want GPU scoring:
+1. Install a **compatible CUDA toolkit / driver** on your machine.
+2. Install **PyTorch** from the official website and select a wheel that matches your OS and CUDA version: https://pytorch.org/get-started/locally/  
+3. Keep `ExplosionConfig(platform="auto")` (default) or set `"cuda"`. When PyTorch+CUDA is detected, scoring runs on GPU; otherwise it falls back to CPU with identical results.
 
-## 🧠 模型灵感
+> Scope: GPU is used for matrix computations in scoring (prototype/arrival kernels). Training remains CPU-only.
 
-### 为什么选择“物理爆炸现象”作为灵感
-在小样本与长尾条件下，真实数据难以覆盖决策边界附近的关键区域，单纯的插值或随机数据增强容易导致边界外推失真。我们期望一种**面向边界方向、幅度可控、阶段递进**的类内扩张机制：既能将有限样本向潜在边界推进，又避免越界到对手类别的势域。物理爆炸现象呈现了**能量瞬时释放 → 物质沿特定方向外扩 → 受环境约束而产生各向异性与壳层结构 → 前沿分阶段推进**的过程，这与我们的方法论目标高度契合，因此选择其作为模型灵感来源（而非求解真实动力学方程）。
+---
 
-### 我们的做法
-- **生长式生成**：为每个类别分配“能量预算”，驱动样本沿局部几何主轴向外扩张；`total_energy、mass、explosion_time、noise_*` 等参数控制生成强度与节奏。
-- **各向异性与对手抑制**：基于局部协方差塑形（`anisotropy`），并对朝向对手类中心的分量进行偏折/抑制（`deflect_rival, deflect_strength`）。
-- **壳层与半径控制**：通过 `shell_ratio, shell_jitter, adaptive_radius_mode` 等限制外推空间，使生成壳层贴近潜在决策边界。
-- **趋势路径投票**：推理时沿候选类别方向多步推进（`path_steps, path_step_size`），每步聚合近邻并加权（`path_k, path_gamma, step_weight_mode`）；路径不可靠时回退多数近邻表决。
+## Quick Start
 
-## ⚙️ API 说明
-
-### 构造函数关键参数
-- **预设与配置**：`preset`（`auto|fscil|balanced_kshot|imbalanced_kshot|extreme_lowshot` 或 `*.yaml`）  
-- **生成（物理类比）**：`num_points, total_energy, mass, explosion_time, noise_scale, noise_decay, dirichlet_alpha, dynamic_energy`  
-- **半径/壳层**：`adaptive_radius_mode, fixed_radius, use_radius_clip, shell_ratio, shell_jitter`  
-- **几何/对抗**：`local_k, anisotropy, deflect_rival, deflect_strength, momentum_conserve`  
-- **趋势路径**：`path_steps, path_step_size, path_k, path_gamma, step_weight_mode, step_gamma`  
-- **调度/稳定**：`points_schedule, energy_schedule, num_iters, energy_decay, radius_growth, governor`  
-- **后端与环境**：`platform`（`auto/cpu/cuda`），`torch_q_block`, `torch_db_block`, `random_state`
-
-### 方法一览
-- `fit(X, y)`：训练基座；解析预设并生成合成样本，建立检索后端。  
-- `partial_fit(X, y, classes=None)`：增量训练（few-shot / 新类并入）。  
-- `continue_fit(extra_iters=..., reseed=None)`：在当前状态上追加少量迭代（短点续训）。  
-- `predict(X)`：趋势路径投票预测。  
-- `score(X, y)`：便捷评估。  
-- `export_fixed_yaml(path, include_meta=True)`：导出最终生效超参快照。  
-- `get_fitted_params()`：返回最终生效超参字典。  
-- `save(dir_path)` / `load(dir_path)`：保存与恢复模型（包含配置、内部数组与后端索引）。  
-- `visualize_explosion(...)`：二维投影下的生长过程与趋势路径可视化，支持导出静图/动画。
-
-## 🧩 功能介绍
-
-### 🎬 可视化
-- **展示内容**：真实样本、合成样本、能量向量、趋势路径；支持 PCA / t-SNE / UMAP 投影。  
-- **常用参数**：`projection`、`n_samples`、`path_steps`、`show_synthetic`、`show_energy_vectors`、`save_path`（按后缀导出 `png/gif/mp4`）。  
-- **依赖**：`matplotlib`；动画导出可选 `imageio`/`imageio-ffmpeg` 或 `moviepy`；UMAP 需 `umap-learn`。  
-- **示例**：
-  ```python
-  clf.visualize_explosion(
-      projection="pca", n_samples=800, path_steps=6,
-      show_synthetic=True, show_energy_vectors=True,
-      save_path="explosion.png", show=False
-  )
-  ```
-
-### 💾 保存与 🔁 续训
-- **保存与恢复**：`save(dir)` 写出配置与内部数组，并保存所需索引/缓存；`PyEGM.load(dir)` 可在目标环境中恢复并直接推理或继续训练。  
-- **短点续训**：`continue_fit(extra_iters=..., reseed=...)` 在既有配置与数据上追加少量迭代，以降低再次训练开销。  
-- **增量会话**：`partial_fit(X, y, classes=None)` 并入新增样本并更新索引；可与保存/加载结合，用于分阶段训练与评估。  
-- **后端选择**：`platform="auto"` 在检测到 CUDA 时使用 GPU，否则回退 CPU；跨环境恢复时按可用性自动选择。
-
-## 🚀 最小使用示例
 ```python
 import numpy as np
-from pyegm import PyEGM
-from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split
+from pyegm import PyEGM, ExplosionConfig
 
-# 数据
-X, y = make_classification(n_samples=2000, n_features=64, n_classes=5, random_state=0)
-Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.3, random_state=0)
+# toy data: 6 classes, 128-dim embeddings
+X = np.random.randn(600, 128).astype("float32")
+y = np.repeat(np.arange(6), repeats=100).astype("int64")
 
-# 初始化与训练
-clf = PyEGM(preset="auto", platform="auto", random_state=42)
-clf.fit(Xtr.astype(np.float32), ytr)
-print("Accuracy:", clf.score(Xte.astype(np.float32), yte))
-
-# 保存与续训
-clf.export_fixed_yaml("pyegm_fixed.yaml")
-clf.save("checkpoints/egm_run")
-
-clf2 = PyEGM.load("checkpoints/egm_run")
-clf2.continue_fit(extra_iters=3, reseed=123)
-clf2.partial_fit(Xtr[:40].astype(np.float32), ytr[:40])
-clf2.save("checkpoints/egm_run_after")
-
-# 可视化（导出静图）
-clf2.visualize_explosion(
-    projection="pca", n_samples=800, path_steps=6,
-    show_synthetic=True, show_energy_vectors=True,
-    save_path="explosion.png", show=False
+cfg = ExplosionConfig(
+    metric="cos",        # "cos" (temperature-scaled cosine) or "l2" (RBF)
+    normalize=True,      # row-wise L2 normalization when metric="cos"
+    num_shells=2,        # shells (S)
+    num_rays=8,          # rays per shell (M)
+    alpha=1.0,           # base radius scale
+    gamma=1.6,           # shell growth factor
+    eta=1.4,             # radial gain after whitening
+    tau0=0.12,           # temperature for cosine kernel
+    beta0=0.60,          # mix between prototype and arrival channels
+    l2_sigma_scale=1.0,  # width scale for RBF when metric="l2"
+    cache_centers=True,  # precompute arrival centers
+    random_state=0,
+    platform="auto",     # "auto" | "cpu" | "cuda"
 )
+
+model = PyEGM(config=cfg).fit(X, y)
+print("device:", model.get_fitted_params()["runtime"]["device"])  # "cuda" or "cpu"
+print("pred:", model.predict(X[:8]))
+print("acc :", model.score(X, y))
 ```
-</details>
+
+> PyEGM operates on **fixed features** (e.g., precomputed embeddings). No backbone is trained here.
+
+---
+
+## Incremental Updates
+
+```python
+# simulate a new batch with new and/or old classes
+X_new = np.random.randn(100, 128).astype("float32")
+y_new = np.random.choice(np.arange(8), size=100).astype("int64")
+
+# update running statistics; unseen labels are added automatically
+model.partial_fit(X_new, y_new)
+
+# evaluate again
+print("acc after update:", model.score(X, y))
+```
+
+---
+
+## Optional Acceleration (Details)
+
+- **Activation**: Install PyTorch from the official site (see link above) and ensure your local CUDA toolkit/driver is compatible. No extra in `pip install pyegm[...]` is required.  
+- **Detection**: With `platform="auto"` (default), the model uses GPU when `torch.cuda.is_available()` is true; otherwise it uses CPU.  
+- **Determinism**: GPU and CPU scoring produce **identical** outputs for the same inputs and parameters.
+
+---
+
+## API Reference
+
+### `ExplosionConfig`
+Configuration dataclass.
+
+- `metric`: `"cos"` (temperature-scaled cosine) or `"l2"` (RBF over squared L2).
+- `normalize`: apply row-wise normalization when `metric="cos"`.
+- `num_shells` (`S`): number of shells.
+- `num_rays` (`M`): rays per shell.
+- `alpha`: base radius scale.
+- `gamma`: shell growth factor (`radius_s = alpha * scale * gamma^s`).
+- `eta`: radial gain after anisotropic whitening.
+- `tau0`: temperature for cosine kernel.
+- `beta0 ∈ [0,1]`: blend between prototype and arrival channels (`1.0` reduces to pure NCM).
+- `l2_sigma_scale`: width scale for RBF when `metric="l2"`.
+- `cache_centers`: precompute and cache arrival centers.
+- `random_state`: seed for deterministic ray directions.
+- `platform`: `{"auto","cpu","cuda"}` — device preference for scoring.
+
+### `PyEGM`
+
+- `fit(X, y)` → self  
+  Compute per-class mean/variance statistics; optionally generate arrival centers.
+- `partial_fit(X, y, classes=None)` → self  
+  Update running statistics via Welford aggregation; new labels are added as needed.
+- `predict(X)` → `ndarray[int]`  
+  Class labels from blended kernel scores.
+- `score(X, y, sample_weight=None)` → `float`  
+  Mean accuracy (scikit-learn signature).
+- `save(dir_path)` / `load(dir_path)`  
+  Persist/restore configuration and statistics. Arrival centers are regenerated on demand.
+- `get_fitted_params()` → `dict`  
+  Return configuration and runtime metadata, including current `device`.
+- `visualize_explosion(...)`  
+  Plot prototypes and arrival centers; optionally overlay a subsample of data points.
+
+---
+
+## Notes
+- No ANN/HNSW dependency is required.  
+
+---
+
+[中文说明](#chinese)
+
+<a id="chinese"></a>
+
+# PyEGM — 受物理“爆炸”启发的样本增长模型（可选 GPU 加速）
+
+PyEGM 面向**固定特征**协议。每个类别由**原型**（类均值）与放置在同心外壳、沿确定性射线的**到达中心**共同表征。预测阶段将“原型通道”和“到达通道”的核分数进行加权融合。
+
+- **核心依赖**：NumPy + scikit-learn  
+- **可选（加速）**：**用户自行安装** PyTorch + CUDA 后，可在打分阶段使用 GPU（不可用时自动回退 CPU）
+
+**API**：`fit`, `partial_fit`, `predict`, `score`, `save`, `load`, 
+
+---
+
+## 安装
+
+```bash
+pip install pyegm                 # 核心
+```
+核心依赖：`numpy>=1.21`, `scikit-learn>=1.0`  
+
+### 启用 GPU 加速（可选）
+PyEGM **不**默认依赖 PyTorch。若需 GPU 打分：  
+1. 在本机安装**兼容的 CUDA 工具链/驱动**；  
+2. 前往 PyTorch 官网选择与你系统与 CUDA 版本匹配的安装命令：https://pytorch.org/get-started/locally/  
+3. 保持 `ExplosionConfig(platform="auto")`（默认）或设为 `"cuda"`。当检测到 PyTorch+CUDA 时，打分在 GPU 上执行；否则自动回退 CPU，结果一致。
+
+> 范围：GPU 仅用于打分阶段的矩阵计算；训练仍在 CPU 上完成。
+
+---
+
+## 快速上手
+
+```python
+import numpy as np
+from pyegm import PyEGM, ExplosionConfig
+
+X = np.random.randn(600, 128).astype("float32")
+y = np.repeat(np.arange(6), repeats=100).astype("int64")
+
+cfg = ExplosionConfig(
+    metric="cos",
+    normalize=True,
+    num_shells=2,
+    num_rays=8,
+    alpha=1.0,
+    gamma=1.6,
+    eta=1.4,
+    tau0=0.12,
+    beta0=0.60,
+    l2_sigma_scale=1.0,
+    cache_centers=True,
+    random_state=0,
+    platform="auto",   # "auto" | "cpu" | "cuda"
+)
+
+model = PyEGM(cfg).fit(X, y)
+print("device:", model.get_fitted_params()["runtime"]["device"])  # "cuda" 或 "cpu"
+print("acc:", model.score(X, y))
+```
+
+---
+
+## 增量更新
+
+```python
+X_new = np.random.randn(100, 128).astype("float32")
+y_new = np.random.choice(np.arange(8), size=100).astype("int64")
+
+model.partial_fit(X_new, y_new)
+print("acc after update:", model.score(X, y))
+```
+
+---
+
+## 可选加速（详细）
+
+- **启用方式**：从 PyTorch 官网安装，并确保本机 CUDA 工具链/驱动与所选 wheel 匹配；无需通过 `pip install pyegm[...]` 安装任何 “gpu” 额外选项。  
+- **自动检测**：`platform="auto"`（默认）时，当 `torch.cuda.is_available()` 为真使用 GPU，否则使用 CPU。  
+- **一致性**：同一输入与参数下，GPU 与 CPU 的打分结果保持一致。
+
+---
+
+## 说明
+- 不依赖 ANN/HNSW。  
