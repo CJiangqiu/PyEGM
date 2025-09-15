@@ -1,26 +1,47 @@
+# -*- coding: utf-8 -*-
 """
-PyEGM - Explosion Generation Model
+PyEGM package
 
-A scikit-learn compatible implementation of the EGM algorithm for classification tasks.
-Core features include hypersphere/gaussian point generation and adaptive radius adjustment.
+Physics-inspired exemplar growth classifier that combines a prototype channel
+and shell-based arrival centers. The public API re-exports the estimator and
+its configuration dataclass.
+
+Main entry points
+-----------------
+- PyEGM:            estimator with sklearn-like interface (fit/partial_fit/predict/score)
+- ExplosionConfig:  configuration dataclass for the model
 """
-__version__ = "0.2.5"
-__author__ = "CJiangqiu"
-__author_email__ = "17787153839@qq.com"
-__license__ = "MIT"
 
-from .pyegm import PyEGM
+from __future__ import annotations
 
-__all__ = ['PyEGM']
+from pathlib import Path
 
-import logging
-logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger.addHandler(logging.NullHandler())
+# Public API
+from .pyegm import PyEGM, ExplosionConfig  # noqa: F401
 
-import sys
-if sys.version_info < (3, 7):
-    raise ImportError(
-        f"PyEGM requires Python 3.7 or later. "
-        f"Current Python version: {sys.version}"
-    )
+__all__ = [
+    "PyEGM",
+    "ExplosionConfig",
+    "data_dir",
+    "__version__",
+]
+
+
+def data_dir() -> Path:
+    """
+    Return the path to packaged data assets inside the installed package.
+    This folder may be empty depending on the distribution.
+    """
+    return Path(__file__).resolve().parent / "data"
+
+
+# Best-effort package version (works in most install modes).
+try:
+    from importlib.metadata import version as _pkg_version  # type: ignore
+
+    try:
+        __version__ = _pkg_version("pyegm")
+    except Exception:
+        __version__ = "0+local"
+except Exception:
+    __version__ = "0+local"
